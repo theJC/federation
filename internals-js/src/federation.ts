@@ -476,14 +476,14 @@ export class FederationMetadata {
 
   private fieldUsedPredicate(): (field: FieldDefinition<CompositeType>) => boolean {
     if (!this._fieldUsedPredicate) {
-      const usedFields = Array.from(collectUsedFields(this));
-      this._fieldUsedPredicate = (field: FieldDefinition<CompositeType>) => !!usedFields.find((f) => f.coordinate === field.coordinate);
+      const usedFields = collectUsedFields(this);
+      this._fieldUsedPredicate = (field: FieldDefinition<CompositeType>) => !!usedFields.has(field);
     }
     return this._fieldUsedPredicate;
   }
 
   isFieldUsed(field: FieldDefinition<CompositeType>): boolean {
-    return this.fieldUsedPredicate()(field);
+    return this.fieldUsedPredicate()(field) || this.keysPredicate()(field);
   }
 
   isFieldExternal(field: FieldDefinition<any> | InputFieldDefinition) {
@@ -508,10 +508,6 @@ export class FederationMetadata {
 
   isFieldShareable(field: FieldDefinition<any>): boolean {
     return this.sharingPredicate()(field);
-  }
-
-  isKeyField(field: FieldDefinition<any>): boolean {
-    return this.keysPredicate()(field);
   }
 
   federationDirectiveNameInSchema(name: string): string {
@@ -594,7 +590,7 @@ export class FederationMetadata {
   }
 
   allFederationDirectives(): DirectiveDefinition[] {
-    const baseDirectives: DirectiveDefinition<any>[] = [
+    const baseDirectives: DirectiveDefinition[] = [
       this.keyDirective(),
       this.externalDirective(),
       this.requiresDirective(),
