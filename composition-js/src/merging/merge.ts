@@ -915,14 +915,12 @@ class Merger {
     subgraphName,
     fromIdx,
     fromField,
-    fromSubgraphName
   }: {
     idx: number;
     field: FieldDefinition<any> | undefined;
     subgraphName: string;
     fromIdx: number;
     fromField: FieldDefinition<any> | undefined;
-    fromSubgraphName: string;
   }): { result: boolean, conflictingDirective?: DirectiveDefinition, subgraph?: string } {
     const fromMetadata = this.metadata(fromIdx);
     for (const directive of [fromMetadata.requiresDirective(), fromMetadata.providesDirective()]) {
@@ -939,13 +937,6 @@ class Merger {
         result: true,
         conflictingDirective: fromMetadata.externalDirective(),
         subgraph: subgraphName,
-      };
-    }
-    if (fromField && this.isExternal(fromIdx, fromField)) {
-      return {
-        result: true,
-        conflictingDirective: fromMetadata.externalDirective(),
-        subgraph: fromSubgraphName,
       };
     }
     return { result: false };
@@ -1027,7 +1018,6 @@ class Merger {
           subgraphName,
           fromIdx: this.names.indexOf(sourceSubgraphName),
           fromField: sources[fromIdx],
-          fromSubgraphName: sourceSubgraphName,
         });
         if (hasIncompatible) {
           assert(conflictingDirective !== undefined, 'conflictingDirective should not be undefined');
