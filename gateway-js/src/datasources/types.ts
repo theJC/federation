@@ -40,7 +40,7 @@ export type GraphQLDataSourceProcessOptions<
        */
       context: GraphQLRequestContext<TContext>['context'];
       /**
-       * The document representation of the request's query being sent to the subgraph.
+       * The document representation of the request's query being sent to the subgraph, if available.
        */
       document?: GraphQLRequestContext<TContext>['document'];
     }

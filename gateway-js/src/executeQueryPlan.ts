@@ -380,7 +380,7 @@ async function executeFetch<TContext>(
     source: string,
     variables: Record<string, any>,
     operationName: string | undefined,
-    operationDocumentNode: DocumentNode
+    operationDocumentNode?: DocumentNode
   ): Promise<ResultMap | void | null> {
     // We declare this as 'any' because it is missing url and method, which
     // GraphQLRequest.http is supposed to have if it exists.
