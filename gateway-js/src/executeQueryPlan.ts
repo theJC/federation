@@ -14,6 +14,7 @@ import {
   GraphQLSchema,
   isObjectType,
   isInterfaceType,
+  DocumentNode,
 } from 'graphql';
 import { Trace, google } from 'apollo-reporting-protobuf';
 import { GraphQLDataSource, GraphQLDataSourceRequestKind } from './datasources/types';
@@ -298,7 +299,8 @@ async function executeFetch<TContext>(
             context,
             fetch.operation,
             variables,
-            fetch.operationName
+            fetch.operationName,
+            fetch.operationDocumentNode
         );
 
         for (const entity of entities) {
@@ -334,7 +336,8 @@ async function executeFetch<TContext>(
             context,
             fetch.operation,
             {...variables, representations},
-            fetch.operationName
+            fetch.operationName,
+            fetch.operationDocumentNode
         );
 
         if (!dataReceivedFromService) {
@@ -376,7 +379,8 @@ async function executeFetch<TContext>(
     context: ExecutionContext<TContext>,
     source: string,
     variables: Record<string, any>,
-    operationName: string | undefined
+    operationName: string | undefined,
+    operationDocumentNode: DocumentNode
   ): Promise<ResultMap | void | null> {
     // We declare this as 'any' because it is missing url and method, which
     // GraphQLRequest.http is supposed to have if it exists.
@@ -414,6 +418,7 @@ async function executeFetch<TContext>(
       },
       incomingRequestContext: context.requestContext,
       context: context.requestContext.context,
+      document: operationDocumentNode
     });
 
     if (response.errors) {

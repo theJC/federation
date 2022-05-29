@@ -833,14 +833,16 @@ class FetchGroup {
           operationName,
         );
 
+    const operationDocument = operationToDocument(operation)
     const fetchNode: FetchNode = {
       kind: 'Fetch',
       serviceName: this.subgraphName,
       requires: inputNodes ? trimSelectionNodes(inputNodes.selections) : undefined,
       variableUsages: this.selection.usedVariables().map(v => v.name),
-      operation: stripIgnoredCharacters(print(operationToDocument(operation))),
+      operation: stripIgnoredCharacters(print(operationDocument)),
       operationKind:schemaRootKindToOperationKind(operation.rootKind),
       operationName: operation.name,
+      operationDocumentNode: operationDocument
     };
 
     return this.isTopLevel
