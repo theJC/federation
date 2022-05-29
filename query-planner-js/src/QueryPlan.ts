@@ -34,7 +34,7 @@ export interface FetchNode {
   operation: string;
   operationName: string | undefined;
   operationKind: OperationTypeNode;
-  operationDocumentNode: DocumentNode;
+  operationDocumentNode?: DocumentNode;
 }
 
 export interface FlattenNode {
