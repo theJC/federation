@@ -40,7 +40,7 @@ for (const directory of directories) {
       beforeAll(() => {
         const supergraphSdl = fs.readFileSync(schemaPath, 'utf8');
         schema = buildSchema(supergraphSdl);
-        queryPlanner = new QueryPlanner(schema);
+        queryPlanner = new QueryPlanner(schema, { exposeDocumentNodeInFetchNode: false});
       });
 
       feature.scenarios.forEach((scenario) => {

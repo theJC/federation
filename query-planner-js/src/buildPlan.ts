@@ -74,6 +74,7 @@ import {
   getLocallySatisfiableKey,
 } from "@apollo/query-graphs";
 import { stripIgnoredCharacters, print, GraphQLError, parse, OperationTypeNode } from "graphql";
+import { QueryPlannerConfig } from "./config";
 import { QueryPlan, ResponsePath, SequenceNode, PlanNode, ParallelNode, FetchNode, trimSelectionNodes } from "./QueryPlan";
 
 const debug = newDebugLogger('plan');
@@ -495,7 +496,7 @@ function withoutIntrospection(operation: Operation): Operation {
   );
 }
 
-export function computeQueryPlan(supergraphSchema: Schema, federatedQueryGraph: QueryGraph, operation: Operation): QueryPlan {
+export function computeQueryPlan(queryPlannerConfig: QueryPlannerConfig, supergraphSchema: Schema, federatedQueryGraph: QueryGraph, operation: Operation): QueryPlan {
   if (operation.rootKind === 'subscription') {
     throw new GraphQLError(
       'Query planning does not support subscriptions for now.',
@@ -515,7 +516,7 @@ export function computeQueryPlan(supergraphSchema: Schema, federatedQueryGraph: 
 
   const root = federatedQueryGraph.root(operation.rootKind);
   assert(root, () => `Shouldn't have a ${operation.rootKind} operation if the subgraphs don't have a ${operation.rootKind} root`);
-  const processor = fetchGroupToPlanProcessor(operation.variableDefinitions, operation.selectionSet.fragments, operation.name);
+  const processor = fetchGroupToPlanProcessor(queryPlannerConfig, operation.variableDefinitions, operation.selectionSet.fragments, operation.name);
   if (operation.rootKind === 'mutation') {
     const dependencyGraphs = computeRootSerialDependencyGraph(supergraphSchema, operation, federatedQueryGraph, root);
     const rootNode = processor.finalize(dependencyGraphs.flatMap(g => g.process(processor)), false);
@@ -639,13 +640,14 @@ function toValidGraphQLName(subgraphName: string): string {
 }
 
 function fetchGroupToPlanProcessor(
+  queryPlannerConfig: QueryPlannerConfig,
   variableDefinitions: VariableDefinitions,
   fragments?: NamedFragments,
   operationName?: string
 ): FetchGroupProcessor<PlanNode, PlanNode, PlanNode | undefined> {
   let counter = 0;
   return {
-    onFetchGroup: (group: FetchGroup) => group.toPlanNode(variableDefinitions, fragments, operationName ? `${operationName}__${toValidGraphQLName(group.subgraphName)}__${counter++}` : undefined),
+    onFetchGroup: (group: FetchGroup) => group.toPlanNode(queryPlannerConfig, variableDefinitions, fragments, operationName ? `${operationName}__${toValidGraphQLName(group.subgraphName)}__${counter++}` : undefined),
     reduceParallel: (values: PlanNode[]) => flatWrap('Parallel', values),
     reduceSequence: (values: PlanNode[]) => flatWrap('Sequence', values),
     finalize: (roots: PlanNode[], rootsAreParallel) => roots.length == 0 ? undefined : flatWrap(rootsAreParallel ? 'Parallel' : 'Sequence', roots)
@@ -806,7 +808,7 @@ class FetchGroup {
     this.dependencyGraph.onMergedIn(this, toMerge);
   }
 
-  toPlanNode(variableDefinitions: VariableDefinitions, fragments?: NamedFragments, operationName?: string) : PlanNode {
+  toPlanNode(queryPlannerConfig: QueryPlannerConfig, variableDefinitions: VariableDefinitions, fragments?: NamedFragments, operationName?: string) : PlanNode {
     addTypenameFieldForAbstractTypes(this.selection);
 
     this.selection.validate();
@@ -840,9 +842,9 @@ class FetchGroup {
       requires: inputNodes ? trimSelectionNodes(inputNodes.selections) : undefined,
       variableUsages: this.selection.usedVariables().map(v => v.name),
       operation: stripIgnoredCharacters(print(operationDocument)),
-      operationKind:schemaRootKindToOperationKind(operation.rootKind),
+      operationKind: schemaRootKindToOperationKind(operation.rootKind),
       operationName: operation.name,
-      operationDocumentNode: operationDocument
+      operationDocumentNode: queryPlannerConfig.exposeDocumentNodeInFetchNode ? operationDocument : undefined
     };
 
     return this.isTopLevel
@@ -1332,7 +1334,7 @@ class FetchDependencyGraph {
             // which is not minimal.
             //
             // So to fix it, we just re-run our dfs removal from that merged edge (which is probably a tad overkill in theory,
-            // but for the reasons mentioned on `reduce`, this is most likely a non-issue in practice). 
+            // but for the reasons mentioned on `reduce`, this is most likely a non-issue in practice).
             this.dfsRemoveRedundantEdges(merged);
 
             // As we've just changed the dependency graph, our current iterations are kind of invalid anymore. So
